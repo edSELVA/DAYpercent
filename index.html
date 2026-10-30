@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="DAYpercent">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="author" content="edSELVA">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 /* Un sol objecte centrat; el fons segueix la llum del dia (el JS reescriu els tokens) */
@@ -22,6 +24,12 @@ body {
 }
 svg { width: min(64vw, 280px); height: auto; max-width: 100%; overflow: visible; }
 .dim { opacity: .18; }
+footer {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  text-align: center; font: 500 11px/1 system-ui, sans-serif; letter-spacing: .12em;
+  color: var(--ink); opacity: .18;
+}
 </style>
 </head>
 <body>
@@ -37,6 +45,8 @@ svg { width: min(64vw, 280px); height: auto; max-width: 100%; overflow: visible;
           stroke-linecap="round" transform="rotate(-90 100 100)"/>
   <g id="lcd" fill="var(--ink)"></g>
 </svg>
+
+<footer>DAYpercent by edSELVA</footer>
 
 <script>
 const R = 70, LEN = 2 * Math.PI * R;
