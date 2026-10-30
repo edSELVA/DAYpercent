@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="DAYpercent">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="author" content="edSELVA">
+<meta name="author" content="edSELVA &amp; TOTI">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -49,7 +49,7 @@ footer {
   <g id="lcd" fill="var(--ink)"></g>
 </svg>
 
-<footer>DAYpercent by edSELVA</footer>
+<footer>DAYpercent by edSELVA &amp; TOTI</footer>
 
 <script>
 const R = 70, LEN = 2 * Math.PI * R;
@@ -59,14 +59,14 @@ document.getElementById('ridges').innerHTML =
   [92, 97.5, 103, 108.5].map(y => `<line x1="181" y1="${y}" x2="193" y2="${y}"/>`).join('');
 
 // Xifres de set segments, com les pantalles de cristall líquid de Casio
-const W = 38, H = 66, T = 8, GAP = 12, TOP = 100 - H / 2;
+const W = 32.7, H = 56.8, T = 6.9, GAP = 10.3, TOP = 100 - H / 2;
 const SEGS = {
   a: [0, 0, 'h'], g: [0, H / 2, 'h'], d: [0, H, 'h'],
   f: [0, 0, 'v'], b: [W, 0, 'v'], e: [0, H / 2, 'v'], c: [W, H / 2, 'v'],
 };
 const DIGITS = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
 function seg(x, y, dir) {
-  const h = T / 2, k = 1.2;
+  const h = T / 2, k = 1;
   const pts = dir === 'h'
     ? [[x + k, y], [x + h + k, y - h], [x + W - h - k, y - h], [x + W - k, y], [x + W - h - k, y + h], [x + h + k, y + h]]
     : [[x, y + k], [x + h, y + h + k], [x + h, y + H / 2 - h - k], [x, y + H / 2 - k], [x - h, y + H / 2 - h - k], [x - h, y + h + k]];
@@ -74,13 +74,16 @@ function seg(x, y, dir) {
 }
 function lcd(str) {
   const total = str.length * W + (str.length - 1) * GAP;
-  let out = '';
+  let on = '', off = '';
   [...str].forEach((ch, i) => {
     const x0 = 100 - total / 2 + i * (W + GAP);
-    for (const [name, [dx, dy, dir]] of Object.entries(SEGS))
-      if (DIGITS[+ch].includes(name)) out += `<polygon points="${seg(x0 + dx, TOP + dy, dir)}"/>`;
+    for (const [name, [dx, dy, dir]] of Object.entries(SEGS)) {
+      const poly = `<polygon points="${seg(x0 + dx, TOP + dy, dir)}"/>`;
+      if (ch !== ' ' && DIGITS[+ch].includes(name)) on += poly; else off += poly;
+    }
   });
-  return `<g transform="skewX(-6) translate(${100 * Math.tan(6 * Math.PI / 180)},0)">${out}</g>`;
+  // Segments apagats encara més suaus que l'anell pendent, com un 8 fantasma
+  return `<g transform="skewX(-6) translate(${100 * Math.tan(6 * Math.PI / 180)},0)"><g opacity=".04">${off}</g>${on}</g>`;
 }
 
 // Franges del dia: [hora, color]. Entre punts, el color es barreja suaument.
@@ -109,7 +112,8 @@ function tick() {
   const f = (now - start) / (end - start);
 
   arc.setAttribute('stroke-dasharray', `${f * LEN} ${LEN}`);
-  const label = String(Math.floor(f * 100));
+  // Sempre dues caselles: amb un sol dígit, la de l'esquerra queda apagada
+  const label = String(Math.floor(f * 100)).padStart(2, ' ');
   if (label !== shown) { document.getElementById('lcd').innerHTML = lcd(label); shown = label; }
 
   const [r, g, b] = sky(f * 24);
