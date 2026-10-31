@@ -48,6 +48,7 @@ footer {
   <circle id="arc" cx="100" cy="100" r="70" fill="none" stroke="var(--ink)" stroke-width="14"
           stroke-linecap="round" transform="rotate(-90 100 100)"/>
   <g id="lcd" fill="var(--ink)"></g>
+  <g id="dec" fill="var(--ink)"></g>
 </svg>
 
 <footer>DAYpercent by edSELVA &amp; TOTI</footer>
@@ -59,32 +60,33 @@ arc.setAttribute('stroke-dasharray', `0 ${LEN}`);
 document.getElementById('ridges').innerHTML =
   [92, 97.5, 103, 108.5].map(y => `<line x1="181" y1="${y}" x2="193" y2="${y}"/>`).join('');
 
-// Xifres de set segments, com les pantalles de cristall líquid de Casio
-const W = 32.7, H = 56.8, T = 6.9, GAP = 10.3, TOP = 100 - H / 2;
-const SEGS = {
-  a: [0, 0, 'h'], g: [0, H / 2, 'h'], d: [0, H, 'h'],
-  f: [0, 0, 'v'], b: [W, 0, 'v'], e: [0, H / 2, 'v'], c: [W, H / 2, 'v'],
-};
+// Xifres de set segments, com les pantalles de cristall líquid de Casio.
+// BIG és el número principal; SMALL, els decimals de sota.
+const BIG = { W: 32.7, H: 56.8, T: 6.9, GAP: 10.3, TOP: 100 - 56.8 / 2 };
+const SMALL = { W: 8.5, H: 14, T: 2.2, GAP: 3, TOP: 140 };
 const DIGITS = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
-function seg(x, y, dir) {
-  const h = T / 2, k = 1;
+function seg(x, y, dir, { W, H, T }) {
+  const h = T / 2, k = T * 0.15;
   const pts = dir === 'h'
     ? [[x + k, y], [x + h + k, y - h], [x + W - h - k, y - h], [x + W - k, y], [x + W - h - k, y + h], [x + h + k, y + h]]
     : [[x, y + k], [x + h, y + h + k], [x + h, y + H / 2 - h - k], [x, y + H / 2 - k], [x - h, y + H / 2 - h - k], [x - h, y + h + k]];
   return pts.map(p => p.join(',')).join(' ');
 }
-function lcd(str) {
+function lcd(str, g) {
+  const { W, H, GAP, TOP } = g;
+  const segs = { a: [0, 0, 'h'], g: [0, H / 2, 'h'], d: [0, H, 'h'],
+                 f: [0, 0, 'v'], b: [W, 0, 'v'], e: [0, H / 2, 'v'], c: [W, H / 2, 'v'] };
   const total = str.length * W + (str.length - 1) * GAP;
   let on = '', off = '';
   [...str].forEach((ch, i) => {
     const x0 = 100 - total / 2 + i * (W + GAP);
-    for (const [name, [dx, dy, dir]] of Object.entries(SEGS)) {
-      const poly = `<polygon points="${seg(x0 + dx, TOP + dy, dir)}"/>`;
+    for (const [name, [dx, dy, dir]] of Object.entries(segs)) {
+      const poly = `<polygon points="${seg(x0 + dx, TOP + dy, dir, g)}"/>`;
       if (ch !== ' ' && DIGITS[+ch].includes(name)) on += poly; else off += poly;
     }
   });
   // Segments apagats encara més suaus que l'anell pendent, com un 8 fantasma
-  return `<g transform="skewX(-6) translate(${100 * Math.tan(6 * Math.PI / 180)},0)"><g class="ghost">${off}</g>${on}</g>`;
+  return `<g transform="skewX(-6) translate(${(TOP + H / 2) * Math.tan(6 * Math.PI / 180)},0)"><g class="ghost">${off}</g>${on}</g>`;
 }
 
 // Franges del dia: color de fons i opacitats de l'anell pendent i dels segments apagats.
@@ -107,7 +109,7 @@ function sky(h) {
 }
 
 const root = document.documentElement.style;
-let shown = '';
+let shown = '', shownDec = '';
 
 function tick() {
   const now = new Date();
@@ -118,7 +120,10 @@ function tick() {
   arc.setAttribute('stroke-dasharray', `${f * LEN} ${LEN}`);
   // Sempre dues caselles: amb un sol dígit, la de l'esquerra queda apagada
   const label = String(Math.floor(f * 100)).padStart(2, ' ');
-  if (label !== shown) { document.getElementById('lcd').innerHTML = lcd(label); shown = label; }
+  if (label !== shown) { document.getElementById('lcd').innerHTML = lcd(label, BIG); shown = label; }
+  // Dècimes i centèsimes del percentatge: l'última xifra canvia cada 8,6 s
+  const dec = String(Math.floor(f * 10000) % 100).padStart(2, '0');
+  if (dec !== shownDec) { document.getElementById('dec').innerHTML = lcd(dec, SMALL); shownDec = dec; }
 
   const { rgb: [r, g, b], dim, ghost } = sky(f * 24);
   root.setProperty('--sky', `rgb(${r},${g},${b})`);
