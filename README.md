@@ -6,6 +6,6 @@ A minimalist clock that shows how much of the day has passed as a percentage, wi
 
 00:00 is 0%, 12:00 is 50%, 18:00 is 75%. Each 1% is 14 minutes and 24 seconds.
 
-The background follows the light: night, blue hour, golden hour and day, then golden hour, blue hour and night again.
+The background follows the real light of each day: night, blue hour, golden hour and day, then golden hour, blue hour and night again, timed to the actual sunrise and sunset in Vic throughout the year.
 
 DAYpercent by edSELVA & TOTI

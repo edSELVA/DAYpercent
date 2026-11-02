@@ -89,21 +89,34 @@ function lcd(str, g) {
   return `<g transform="skewX(-6) translate(${(TOP + H / 2) * Math.tan(6 * Math.PI / 180)},0)"><g class="ghost">${off}</g>${on}</g>`;
 }
 
-// Franges del dia: color de fons i opacitats de l'anell pendent i dels segments apagats.
-// Com més clar és el fons, més opacitat cal perquè es vegin igual que de nit.
+// Franges del dia segons l'alçada del sol sobre l'horitzó, calculada per a Vic.
+// Així l'hora blava i l'hora daurada segueixen la sortida i la posta de cada dia de l'any.
+// Color de fons i opacitats de l'anell pendent i dels segments apagats:
+// com més clar és el fons, més opacitat cal perquè es vegin igual que de nit.
+const LAT = 41.93, LON = 2.25;
 const NIT = ['#181C27', .18, .04], BLAVA = ['#22306E', .24, .06],
       DAURADA = ['#E09A5C', .30, .09], DIA = ['#9DB6BF', .34, .11];
+// [alçada del sol en graus, franja]: hora blava entre -7° i -4°, daurada entre -1° i 4°
 const SKY = [
-  [0, NIT], [5.5, NIT], [6.2, BLAVA], [6.9, BLAVA], [7.4, DAURADA], [8.6, DAURADA],
-  [9.6, DIA], [17, DIA], [18, DAURADA], [19.2, DAURADA], [19.7, BLAVA], [20.4, BLAVA],
-  [21.2, NIT], [24, NIT],
+  [-90, NIT], [-10, NIT], [-7, BLAVA], [-4, BLAVA], [-1, DAURADA], [4, DAURADA], [8, DIA], [90, DIA],
 ];
+const RAD = Math.PI / 180;
+function sunAltitude(date) {
+  const d = date / 864e5 - 10957.5;                      // dies des de l'1 de gener del 2000 a les 12:00 UTC
+  const g = (357.529 + 0.98560028 * d) * RAD;            // anomalia mitjana
+  const L = (280.459 + 0.98564736 * d + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * RAD;
+  const e = (23.439 - 0.00000036 * d) * RAD;             // inclinació de l'eix
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L));
+  const dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const ha = (280.46061837 + 360.98564736629 * d + LON) * RAD - ra;
+  return Math.asin(Math.sin(LAT * RAD) * Math.sin(dec) + Math.cos(LAT * RAD) * Math.cos(dec) * Math.cos(ha)) / RAD;
+}
 const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const lerp = (a, b, e) => a + (b - a) * e;
-function sky(h) {
-  let i = 0; while (SKY[i + 1][0] <= h) i++;
-  const [h0, [c0, d0, g0]] = SKY[i], [h1, [c1, d1, g1]] = SKY[i + 1];
-  const t = (h - h0) / (h1 - h0), e = t * t * (3 - 2 * t);
+function sky(alt) {
+  let i = 0; while (SKY[i + 1][0] <= alt) i++;
+  const [a0, [c0, d0, g0]] = SKY[i], [a1, [c1, d1, g1]] = SKY[i + 1];
+  const t = (alt - a0) / (a1 - a0), e = t * t * (3 - 2 * t);
   const A = hex(c0), B = hex(c1);
   return { rgb: A.map((v, k) => Math.round(lerp(v, B[k], e))), dim: lerp(d0, d1, e), ghost: lerp(g0, g1, e) };
 }
@@ -125,7 +138,7 @@ function tick() {
   const dec = String(Math.floor(f * 10000) % 100).padStart(2, '0');
   if (dec !== shownDec) { document.getElementById('dec').innerHTML = lcd(dec, SMALL); shownDec = dec; }
 
-  const { rgb: [r, g, b], dim, ghost } = sky(f * 24);
+  const { rgb: [r, g, b], dim, ghost } = sky(sunAltitude(now));
   root.setProperty('--sky', `rgb(${r},${g},${b})`);
   root.setProperty('--dim', dim.toFixed(3));
   root.setProperty('--ghost', ghost.toFixed(3));
