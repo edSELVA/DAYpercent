@@ -170,7 +170,7 @@ tick();
 setInterval(tick, 1000);
 
 // Esfera de conversió: l'anell del rellotge, les hores per fora i, per dins, a cada hora
-// el % de la primera volta (fora, més apagat) i el de la segona (dins), amb xifres LCD
+// el % de la primera volta (fora, clar, al costat de l'anell) i el de la segona (dins, més apagat), amb xifres LCD
 {
   const pt = (a, r) => [100 + r * Math.sin(a * RAD), 100 - r * Math.cos(a * RAD)];
   // Centrat vertical a mà (0,36 de la mida, la meitat de l'alçada de les xifres): dominant-baseline
@@ -196,15 +196,15 @@ setInterval(tick, 1000);
   let hours = '', digits = '';
   for (let h = 0; h < 12; h++) {
     hours += text(pt(h * 30, 91), `${h || 12}h`, 6.6, 1);
-    digits += lcdAt(String(pc(h)), pt(h * 30, 65), .55) + lcdAt(String(pc(h + 12)), pt(h * 30, 46), 1);
+    digits += lcdAt(String(pc(h)), pt(h * 30, 65), 1) + lcdAt(String(pc(h + 12)), pt(h * 30, 46), .55);
   }
-  // Un sol % al centre: indica que totes les xifres de dins són percentatges
-  hours += text([100, 100], '%', 16, .55);
+  // Un sol % al centre, del to de l'anell: indica que totes les xifres de dins són percentatges
+  const percent = `<text class="dim" x="100" y="${100 + 16 * .36}" font-size="16">%</text>`;
   document.getElementById('dial').innerHTML =
     `<circle class="dim" cx="100" cy="100" r="80" fill="none" stroke="var(--ink)" stroke-width="6"/>` +
     `<g fill="var(--ink)">${digits}</g>` +
     `<g fill="var(--ink)" text-anchor="middle" font-weight="600" ` +
-    `font-family="system-ui, -apple-system, sans-serif" style="font-variant-numeric: tabular-nums">${hours}</g>`;
+    `font-family="system-ui, -apple-system, sans-serif" style="font-variant-numeric: tabular-nums">${hours}${percent}</g>`;
 }
 
 // El + i el < queden alineats amb els extrems del text de crèdits
