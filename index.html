@@ -63,7 +63,7 @@ footer {
   <g id="dec" fill="var(--ink)"></g>
 </svg>
 
-<!-- Esfera de conversió d'hores a percentatge: a fora la primera volta (0–11 h), a dins la segona (12–23 h) -->
+<!-- Esfera de conversió d'hores a percentatge: hores per fora de l'anell; a dins, la primera volta (0–11 h) i la segona (12–23 h) -->
 <svg id="dial" viewBox="0 0 200 200" role="img" aria-label="Conversió d'hores a percentatge del dia"></svg>
 
 <button class="btn" id="open" aria-label="Veure la conversió d'hores a percentatge">
@@ -169,34 +169,42 @@ function tick() {
 tick();
 setInterval(tick, 1000);
 
-// Esfera de conversió: a cada hora, el % de la primera volta (fora, més apagat) i el de la segona (dins)
+// Esfera de conversió: l'anell del rellotge, les hores per fora i, per dins, a cada hora
+// el % de la primera volta (fora, més apagat) i el de la segona (dins), amb xifres LCD
 {
   const pt = (a, r) => [100 + r * Math.sin(a * RAD), 100 - r * Math.cos(a * RAD)];
   // Centrat vertical a mà (0,36 de la mida, la meitat de l'alçada de les xifres): dominant-baseline
   // no es comporta igual a tots els navegadors i a l'iPhone les voltes quedaven desplaçades amunt
   const text = ([x, y], t, size, op) =>
     `<text x="${x.toFixed(1)}" y="${(y + size * .36).toFixed(1)}" font-size="${size}" opacity="${op}">${t}</text>`;
+  // Xifres LCD centrades en un punt, amb la mateixa inclinació que el número gran
+  const SMALL_DIAL = { W: 4.6, H: 8, T: 1.1, GAP: 1.6 };
+  function lcdAt(str, [cx, cy], op) {
+    const { W, H, GAP } = SMALL_DIAL, total = str.length * W + (str.length - 1) * GAP, top = cy - H / 2;
+    const segs = { a: [0, 0, 'h'], g: [0, H / 2, 'h'], d: [0, H, 'h'],
+                   f: [0, 0, 'v'], b: [W, 0, 'v'], e: [0, H / 2, 'v'], c: [W, H / 2, 'v'] };
+    let on = '';
+    [...str].forEach((ch, i) => {
+      const x0 = cx - total / 2 + i * (W + GAP);
+      for (const [name, [dx, dy, dir]] of Object.entries(segs))
+        if (DIGITS[+ch].includes(name)) on += `<polygon points="${seg(x0 + dx, top + dy, dir, SMALL_DIAL)}"/>`;
+    });
+    return `<g opacity="${op}" transform="translate(${cx} ${cy}) skewX(-6) translate(${-cx} ${-cy})">${on}</g>`;
+  }
   // Arrodoniment al parell en els mitjos (12,5 → 12; 37,5 → 38), igual que el fons del COROS
   const pc = h => { const x = h / 24 * 100, f = Math.floor(x); return x - f === .5 ? f + f % 2 : Math.round(x); };
-  let dots = '', nums = '';
-  // Un punt per cada 1 %, sense els que cauen sobre una hora
-  for (let i = 0; i < 100; i++) {
-    const a = i * 3.6;
-    if (Math.min(a % 30, 30 - a % 30) < 2.5) continue;
-    const [x, y] = pt(a, 82.5);
-    dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r=".55"/>`;
-  }
+  let hours = '', digits = '';
   for (let h = 0; h < 12; h++) {
-    nums += text(pt(h * 30, 91), `${h || 12}h`, 6.6, 1)
-          + text(pt(h * 30, 71), pc(h), 12, .55)
-          + text(pt(h * 30, 51), pc(h + 12), 12, 1);
+    hours += text(pt(h * 30, 91), `${h || 12}h`, 6.6, 1);
+    digits += lcdAt(String(pc(h)), pt(h * 30, 65), .55) + lcdAt(String(pc(h + 12)), pt(h * 30, 46), 1);
   }
   // Un sol % al centre: indica que totes les xifres de dins són percentatges
-  nums += text([100, 100], '%', 16, .55);
+  hours += text([100, 100], '%', 16, .55);
   document.getElementById('dial').innerHTML =
-    `<g fill="var(--ink)" class="dial-dots" style="opacity: min(1, calc(var(--dim) * 2.2))">${dots}</g>` +
+    `<circle class="dim" cx="100" cy="100" r="80" fill="none" stroke="var(--ink)" stroke-width="6"/>` +
+    `<g fill="var(--ink)">${digits}</g>` +
     `<g fill="var(--ink)" text-anchor="middle" font-weight="600" ` +
-    `font-family="system-ui, -apple-system, sans-serif" style="font-variant-numeric: tabular-nums">${nums}</g>`;
+    `font-family="system-ui, -apple-system, sans-serif" style="font-variant-numeric: tabular-nums">${hours}</g>`;
 }
 
 // El + i el < queden alineats amb els extrems del text de crèdits
