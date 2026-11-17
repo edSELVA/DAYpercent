@@ -172,8 +172,10 @@ setInterval(tick, 1000);
 // Esfera de conversió: a cada hora, el % de la primera volta (fora, més apagat) i el de la segona (dins)
 {
   const pt = (a, r) => [100 + r * Math.sin(a * RAD), 100 - r * Math.cos(a * RAD)];
+  // Centrat vertical a mà (0,36 de la mida, la meitat de l'alçada de les xifres): dominant-baseline
+  // no es comporta igual a tots els navegadors i a l'iPhone les voltes quedaven desplaçades amunt
   const text = ([x, y], t, size, op) =>
-    `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${size}" opacity="${op}">${t}</text>`;
+    `<text x="${x.toFixed(1)}" y="${(y + size * .36).toFixed(1)}" font-size="${size}" opacity="${op}">${t}</text>`;
   // Arrodoniment al parell en els mitjos (12,5 → 12; 37,5 → 38), igual que el fons del COROS
   const pc = h => { const x = h / 24 * 100, f = Math.floor(x); return x - f === .5 ? f + f % 2 : Math.round(x); };
   let dots = '', nums = '';
@@ -185,13 +187,15 @@ setInterval(tick, 1000);
     dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r=".55"/>`;
   }
   for (let h = 0; h < 12; h++) {
-    nums += text(pt(h * 30, 91), h || 12, 6.6, 1)
+    nums += text(pt(h * 30, 91), `${h || 12}h`, 6.6, 1)
           + text(pt(h * 30, 71), pc(h), 12, .55)
           + text(pt(h * 30, 51), pc(h + 12), 12, 1);
   }
+  // Un sol % al centre: indica que totes les xifres de dins són percentatges
+  nums += text([100, 100], '%', 16, .55);
   document.getElementById('dial').innerHTML =
     `<g fill="var(--ink)" class="dial-dots" style="opacity: min(1, calc(var(--dim) * 2.2))">${dots}</g>` +
-    `<g fill="var(--ink)" text-anchor="middle" dominant-baseline="central" font-weight="600" ` +
+    `<g fill="var(--ink)" text-anchor="middle" font-weight="600" ` +
     `font-family="system-ui, -apple-system, sans-serif" style="font-variant-numeric: tabular-nums">${nums}</g>`;
 }
 
