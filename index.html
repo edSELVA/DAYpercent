@@ -23,6 +23,18 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 svg { width: min(64vw, 280px); height: auto; max-width: 100%; overflow: visible; }
+#dial { width: min(88vw, 380px); }
+body.dial #clock, body:not(.dial) #dial, body.dial #open, body:not(.dial) #back { display: none; }
+/* Botons discrets a dalt, alineats amb els extrems del text de crèdits (el JS en fixa la posició) */
+.btn {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 4px);
+  width: 40px; height: 40px; padding: 12px; box-sizing: border-box;
+  background: none; border: 0; cursor: pointer; color: var(--ink);
+  opacity: min(1, calc(var(--dim) * 2)); -webkit-tap-highlight-color: transparent;
+}
+.btn svg { width: 16px; height: 16px; display: block; }
+#open { right: 16px; }
+#back { left: 16px; }
 .dim { opacity: var(--dim); }
 .ghost { opacity: var(--ghost); }
 footer {
@@ -34,7 +46,7 @@ footer {
 </style>
 </head>
 <body>
-<svg viewBox="0 0 200 200" aria-hidden="true">
+<svg id="clock" viewBox="0 0 200 200" aria-hidden="true">
   <!-- Corona estriada a les 3, del to de l'anell pendent -->
   <!-- Pista i corona en un sol grup: la transparència s'aplica una vegada i no es sumen on es toquen -->
   <g class="dim">
@@ -51,7 +63,17 @@ footer {
   <g id="dec" fill="var(--ink)"></g>
 </svg>
 
-<footer>DAYpercent by edSELVA &amp; TOTI</footer>
+<!-- Esfera de conversió d'hores a percentatge: a fora la primera volta (0–11 h), a dins la segona (12–23 h) -->
+<svg id="dial" viewBox="0 0 200 200" role="img" aria-label="Conversió d'hores a percentatge del dia"></svg>
+
+<button class="btn" id="open" aria-label="Veure la conversió d'hores a percentatge">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 8h14M8 1v14"/></svg>
+</button>
+<button class="btn" id="back" aria-label="Tornar al rellotge">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1 4 8l7 7"/></svg>
+</button>
+
+<footer><span id="credits">DAYpercent by edSELVA &amp; TOTI</span></footer>
 
 <script>
 const R = 70, LEN = 2 * Math.PI * R;
@@ -146,6 +168,47 @@ function tick() {
 }
 tick();
 setInterval(tick, 1000);
+
+// Esfera de conversió: a cada hora, el % de la primera volta (fora, més apagat) i el de la segona (dins)
+{
+  const pt = (a, r) => [100 + r * Math.sin(a * RAD), 100 - r * Math.cos(a * RAD)];
+  const text = ([x, y], t, size, op) =>
+    `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${size}" opacity="${op}">${t}</text>`;
+  // Arrodoniment al parell en els mitjos (12,5 → 12; 37,5 → 38), igual que el fons del COROS
+  const pc = h => { const x = h / 24 * 100, f = Math.floor(x); return x - f === .5 ? f + f % 2 : Math.round(x); };
+  let dots = '', nums = '';
+  // Un punt per cada 1 %, sense els que cauen sobre una hora
+  for (let i = 0; i < 100; i++) {
+    const a = i * 3.6;
+    if (Math.min(a % 30, 30 - a % 30) < 2.5) continue;
+    const [x, y] = pt(a, 82.5);
+    dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r=".55"/>`;
+  }
+  for (let h = 0; h < 12; h++) {
+    nums += text(pt(h * 30, 91), h || 12, 6.6, 1)
+          + text(pt(h * 30, 71), pc(h), 12, .55)
+          + text(pt(h * 30, 51), pc(h + 12), 12, 1);
+  }
+  document.getElementById('dial').innerHTML =
+    `<g fill="var(--ink)" class="dial-dots" style="opacity: min(1, calc(var(--dim) * 2.2))">${dots}</g>` +
+    `<g fill="var(--ink)" text-anchor="middle" dominant-baseline="central" font-weight="600" ` +
+    `font-family="system-ui, -apple-system, sans-serif" style="font-variant-numeric: tabular-nums">${nums}</g>`;
+}
+
+// El + i el < queden alineats amb els extrems del text de crèdits
+const credits = document.getElementById('credits');
+function placeButtons() {
+  const r = credits.getBoundingClientRect();
+  document.getElementById('open').style.right = `${innerWidth - r.right - 12}px`;
+  document.getElementById('back').style.left = `${r.left - 15}px`;
+}
+placeButtons();
+addEventListener('resize', placeButtons);
+document.fonts?.ready.then(placeButtons);
+const showDial = on => document.body.classList.toggle('dial', on);
+document.getElementById('open').onclick = () => showDial(true);
+document.getElementById('back').onclick = () => showDial(false);
+addEventListener('keydown', e => { if (e.key === 'Escape') showDial(false); });
 </script>
 </body>
 </html>
